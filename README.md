@@ -6,7 +6,7 @@ All data in this project is fictitious. There are no secrets, tokens or personal
 
 ## Running
 
-Requires Node.js 20 or newer.
+Requires Node.js 20 or newer (tested on Node.js 24).
 
 ```bash
 npm install
@@ -46,6 +46,7 @@ src/
   components/
     TaskList.tsx        # list, delete, infinite scroll
     TaskForm.tsx        # create and edit form
+    flash.ts            # success message shown on the list after saving
 ```
 
 ## How it works
