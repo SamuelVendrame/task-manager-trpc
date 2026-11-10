@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { trpc } from "@/trpc/client";
 import type { Task } from "@/server/store";
+import { takeFlash } from "./flash";
 
 type Page = { items: Task[]; nextCursor: { dataCriacao: number; id: string } | null; total: number };
 type Feedback = { type: "success" | "error"; message: string } | null;
@@ -45,6 +46,12 @@ export function TaskList({ initialPage, pageSize }: { initialPage: Page; pageSiz
       setDeletingId(null);
     },
   });
+
+  // Show, once, the success message left by the create/edit form.
+  useEffect(() => {
+    const message = takeFlash();
+    if (message) setFeedback({ type: "success", message });
+  }, []);
 
   // Hide the feedback message after a few seconds.
   useEffect(() => {

@@ -1,10 +1,13 @@
 "use client";
 
+import { useQueryClient } from "@tanstack/react-query";
+import { getQueryKey } from "@trpc/react-query";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { trpc } from "@/trpc/client";
 import type { Task } from "@/server/store";
+import { setFlash } from "./flash";
 
 type Props = { task?: Task };
 
@@ -16,18 +19,26 @@ type Props = { task?: Task };
  */
 export function TaskForm({ task }: Props) {
   const router = useRouter();
-  const utils = trpc.useUtils();
+  const queryClient = useQueryClient();
   const isEdit = Boolean(task);
 
   const [titulo, setTitulo] = useState(task?.titulo ?? "");
   const [descricao, setDescricao] = useState(task?.descricao ?? "");
-  const [touched, setTouched] = useState(false);
+  // The validation message appears only after a submit attempt. Showing it on
+  // blur would insert it while the user is clicking "Cancel", moving the button
+  // away from the cursor in the middle of the click.
+  const [submitted, setSubmitted] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
 
   const titleError = titulo.trim().length === 0 ? "Title is required" : null;
 
-  const onSuccess = async () => {
-    await utils.task.list.invalidate();
+  const onSuccess = () => {
+    // Success feedback: the list page shows this message once (see TaskList).
+    setFlash(isEdit ? "Task updated successfully." : "Task created successfully.");
+    // Drop the cached list. The list page then starts from the data rendered on
+    // the server, which already includes this change, instead of first showing
+    // its old cache next to the success message.
+    queryClient.removeQueries({ queryKey: getQueryKey(trpc.task.list) });
     router.push("/");
     router.refresh(); // re-run the SSR list with fresh data
   };
@@ -43,11 +54,13 @@ export function TaskForm({ task }: Props) {
     onSuccess,
     onError: (err) => showError(err.message, err.data?.zodError?.fieldErrors.titulo?.[0]),
   });
-  const isSaving = create.isPending || update.isPending;
+  // Stays true after a successful save, until the redirect replaces this page:
+  // the button must not be clickable again while the navigation is in progress.
+  const isSaving = create.isPending || update.isPending || create.isSuccess || update.isSuccess;
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setTouched(true);
+    setSubmitted(true);
     setServerError(null);
     if (titleError) return; // client-side validation: do not send an empty title
 
@@ -65,11 +78,10 @@ export function TaskForm({ task }: Props) {
           id="titulo"
           value={titulo}
           onChange={(e) => setTitulo(e.target.value)}
-          onBlur={() => setTouched(true)}
           maxLength={120}
           autoFocus
         />
-        {touched && titleError && <span className="hint">{titleError}</span>}
+        {submitted && titleError && <span className="hint">{titleError}</span>}
       </div>
 
       <div className="field">
