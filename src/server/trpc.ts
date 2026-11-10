@@ -1,5 +1,5 @@
 import { initTRPC } from "@trpc/server";
-import { ZodError } from "zod";
+import { ZodError, z } from "zod";
 
 /**
  * tRPC initialization.
@@ -14,7 +14,11 @@ const t = initTRPC.create({
       ...shape,
       data: {
         ...shape.data,
-        zodError: error.cause instanceof ZodError ? error.cause.flatten() : null,
+        zodError:
+          error.cause instanceof ZodError
+            ? // The cast only tells TypeScript that the errors are keyed by field name.
+              z.flattenError(error.cause as ZodError<Record<string, unknown>>)
+            : null,
       },
     };
   },

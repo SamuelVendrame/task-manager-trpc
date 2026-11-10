@@ -8,7 +8,7 @@ import { store, type Task } from "../store";
  * before the resolver runs, and the same types flow to the client automatically.
  */
 const titulo = z
-  .string({ required_error: "Title is required" })
+  .string({ error: (issue) => (issue.input === undefined ? "Title is required" : "Title must be a string") })
   .trim()
   .min(1, "Title is required")
   .max(120, "Title must have at most 120 characters");
